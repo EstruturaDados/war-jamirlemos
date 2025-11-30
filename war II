@@ -1,0 +1,177 @@
+// ============================================================================
+//                  NÍVEL AVENTUREIRO – BATALHAS ESTRATÉGICAS (WAR)
+// ============================================================================
+// • Territórios armazenados com calloc (alocação dinâmica)
+// • Função para batalhas usando dados aleatórios
+// • Conquista de territórios
+// • Uso de ponteiros e modularização
+// ============================================================================
+
+#include <stdio.h>      // entrada e saída padrão
+#include <stdlib.h>     // calloc, rand, srand
+#include <string.h>     // strcpy, strcspn
+#include <time.h>       // time() para sementes aleatórias
+#include <locale.h>     // suporte a acentos no terminal
+
+#define TOTAL_TERRITORIOS 5   // quantidade fixa de territórios
+
+// ============================================================================
+// STRUCT DO TERRITÓRIO — representa cada região do mapa
+// ============================================================================
+typedef struct {
+    char nome[50];       // nome do território
+    char cor[20];        // cor/exército que controla o território
+    int tropas;          // quantidade de tropas
+} Territorio;
+
+// ============================================================================
+// FUNÇÃO: Simula batalha entre dois territórios
+// ============================================================================
+void atacar(Territorio *atacante, Territorio *defensor) {
+    // Exibe informações iniciais da batalha
+    printf("\n================ BATALHA ================\n");
+    printf("Atacante: %s (%s) | Tropas: %d\n",
+           atacante->nome, atacante->cor, atacante->tropas);
+
+    printf("Defensor: %s (%s) | Tropas: %d\n",
+           defensor->nome, defensor->cor, defensor->tropas);
+
+    // Sorteia valores de dados entre 1 e 6
+    int dado_atk = (rand() % 6) + 1;
+    int dado_def = (rand() % 6) + 1;
+
+    // Exibe resultados dos dados
+    printf("\nDado do ataque:  %d\n", dado_atk);
+    printf("Dado da defesa:  %d\n", dado_def);
+
+    // Lógica da batalha:
+    // Atacante vence empates
+    if (dado_atk >= dado_def) {
+        printf("\nAtacante venceu o confronto!\n");
+        defensor->tropas--;   // defensor perde 1 tropa
+
+        // Se defensor ficou sem tropas, território é conquistado
+        if (defensor->tropas <= 0) {
+            printf("Território %s foi conquistado!\n", defensor->nome);
+
+            // muda a cor do território conquistado
+            strcpy(defensor->cor, atacante->cor);
+
+            // defensor ganha 1 tropa mínima após ser dominado
+            defensor->tropas = 1;
+
+            // atacante perde 1 tropa ao ocupar o território
+            atacante->tropas--;
+
+            printf("Agora pertence ao exército %s.\n", defensor->cor);
+        }
+    } else {
+        // defensor ganhou
+        printf("\n Defensor resistiu ao ataque!\n");
+        atacante->tropas--;  // atacante perde tropa em derrota
+    }
+
+    printf("==========================================\n");
+}
+
+// ============================================================================
+// PROGRAMA PRINCIPAL
+// ============================================================================
+int main() {
+    setlocale(LC_ALL,"Portuguese_Brazil");   // habilita acentuação
+
+    srand(time(NULL));   // inicializa semente para números aleatórios
+
+    printf("=== NÍVEL AVENTUREIRO: BATALHAS ESTRATÉGICAS ===\n\n");
+
+    // Alocação dinâmica de memória usando calloc
+    // calloc zera a memória atribuída
+    Territorio *mapa = (Territorio*) calloc(TOTAL_TERRITORIOS, sizeof(Territorio));
+
+    // verifica se houve falha na alocação
+    if (mapa == NULL) {
+        printf("Erro ao alocar memória!\n");
+        return 1;
+    }
+
+    // ====================================================================
+    // CADASTRO DOS TERRITÓRIOS (entrada de dados do usuário)
+    // ====================================================================
+    for (int i = 0; i < TOTAL_TERRITORIOS; i++) {
+
+        printf("\n--- Cadastro do Território %d ---\n", i + 1);
+
+        printf("Nome: ");
+        fgets(mapa[i].nome, sizeof(mapa[i].nome), stdin);
+        mapa[i].nome[strcspn(mapa[i].nome, "\n")] = '\0';   // remove \n
+
+        printf("Cor do exército: ");
+        fgets(mapa[i].cor, sizeof(mapa[i].cor), stdin);
+        mapa[i].cor[strcspn(mapa[i].cor, "\n")] = '\0';     // remove \n
+
+        printf("Tropas: ");
+        scanf("%d", &mapa[i].tropas);
+
+        getchar(); // limpa o \n que sobra no buffer
+    }
+
+    // ====================================================================
+    // FASE DE BATALHAS — menu interativo
+    // ====================================================================
+    int opcao;
+
+    do {
+        printf("\n\n===== MENU DE BATALHA =====\n");
+        printf("1 - Atacar\n");
+        printf("0 - Sair\n");
+        printf("Escolha: ");
+        scanf("%d", &opcao);
+        getchar();
+
+        if (opcao == 1) {
+
+            int a, d;
+
+            // escolha do atacante
+            printf("\nEscolha o território atacante (1 a %d): ", TOTAL_TERRITORIOS);
+            scanf("%d", &a);
+            getchar();
+
+            // escolha do defensor
+            printf("Escolha o território defensor (1 a %d): ", TOTAL_TERRITORIOS);
+            scanf("%d", &d);
+            getchar();
+
+            // valida entrada
+            if (a < 1 || a > TOTAL_TERRITORIOS ||
+                d < 1 || d > TOTAL_TERRITORIOS ||
+                a == d) {
+                printf("\n Escolha inválida!\n");
+                continue;
+            }
+
+            // chama função de batalha passando ponteiros
+            atacar(&mapa[a-1], &mapa[d-1]);
+        }
+
+    } while (opcao != 0);
+
+    // ====================================================================
+    // LISTAGEM FINAL DO MAPA
+    // ====================================================================
+    printf("\n\n===== ESTADO FINAL DO MAPA =====\n");
+
+    for (int i = 0; i < TOTAL_TERRITORIOS; i++) {
+        printf("\n---------------------------------\n");
+        printf("Território %d\n", i + 1);
+        printf("Nome: %s\n", mapa[i].nome);
+        printf("Cor: %s\n", mapa[i].cor);
+        printf("Tropas: %d\n", mapa[i].tropas);
+    }
+
+    printf("\n=================================\n");
+
+    free(mapa); // libera memória alocada dinamicamente
+
+    return 0;
+}
