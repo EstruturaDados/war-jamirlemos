@@ -1,0 +1,255 @@
+// ============================================================================
+//                  NÍVEL MESTRE – BATALHAS ESTRATÉGICAS (WAR)
+// ============================================================================
+// • Agora usando alocação dinâmica com calloc
+// • Funções totalmente modularizadas
+// • Missões aleatórias
+// • Sistema de batalhas com dados aleatórios
+// • Uso de acentos permitido (locale pt_BR)
+// ============================================================================
+
+#include <stdio.h>      // entrada e saída padrão
+#include <stdlib.h>     // calloc, free, rand, srand
+#include <string.h>     // strcpy, strcmp, strcspn
+#include <time.h>       // time() para srand
+#include <locale.h>     // suporte a acentos e UTF-8
+
+#define TOTAL_TERRITORIOS 5   // quantidade de territórios
+
+// ============================================================================
+// ESTRUTURA: Representa um território do jogo
+// ============================================================================
+typedef struct {
+    char nome[40];   // Nome do território
+    char cor[20];    // Cor (dono do território)
+    int tropas;      // Tropas presentes
+} Território;
+
+// ============================================================================
+// ENUM: Missões possíveis
+// ============================================================================
+typedef enum {
+    MISSAO_DESTRUIR_VERDE = 1,
+    MISSAO_CONQUISTAR_3
+} Missão;
+
+// ============================================================================
+// PROTÓTIPOS DE FUNÇÕES
+// ============================================================================
+void inicializarMapa(Território mapa[]);
+void exibirMapa(const Território mapa[]);
+void atacar(Território *atacante, Território *defensor);
+Missão gerarMissão();
+void exibirMissão(Missão m);
+int verificarMissão(Missão m, const Território mapa[]);
+
+// ============================================================================
+// Inicializa o mapa com valores padrões
+// ============================================================================
+void inicializarMapa(Território mapa[]) {
+
+    const char *nomes[TOTAL_TERRITORIOS] = {
+        "Montanhas Sombrias",
+        "Planície Rubra",
+        "Fortaleza Azul",
+        "Floresta Verdejante",
+        "Deserto Laranja"
+    };
+
+    const char *cores[TOTAL_TERRITORIOS] = {
+        "Vermelho",
+        "Azul",
+        "Verde",
+        "Amarelo",
+        "Preto"
+    };
+
+    const int tropasIniciais[TOTAL_TERRITORIOS] = { 5, 4, 6, 3, 4 };
+
+    for (int i = 0; i < TOTAL_TERRITORIOS; i++) {
+        strcpy(mapa[i].nome, nomes[i]);
+        strcpy(mapa[i].cor, cores[i]);
+        mapa[i].tropas = tropasIniciais[i];
+    }
+}
+
+// ============================================================================
+// Exibe o estado atual do mapa
+// ============================================================================
+void exibirMapa(const Território mapa[]) {
+
+    printf("\n===== ESTADO ATUAL DO MAPA =====\n");
+
+    for (int i = 0; i < TOTAL_TERRITORIOS; i++) {
+        printf("\n[%d] %s\n", i + 1, mapa[i].nome);
+        printf("Cor: %s\n", mapa[i].cor);
+        printf("Tropas: %d\n", mapa[i].tropas);
+    }
+
+    printf("=================================\n");
+}
+
+// ============================================================================
+// Batalha entre dois territórios
+// ============================================================================
+void atacar(Território *atacante, Território *defensor) {
+
+    printf("\n--- BATALHA INICIADA ---\n");
+
+    int dadoA = (rand() % 6) + 1;   // dado de ataque
+    int dadoD = (rand() % 6) + 1;   // dado de defesa
+
+    printf("Ataque (%s): %d\n", atacante->nome, dadoA);
+    printf("Defesa (%s): %d\n", defensor->nome, dadoD);
+
+    if (dadoA >= dadoD) {
+        printf("Resultado: O atacante venceu!\n");
+        defensor->tropas--;
+
+        // Conquista de território
+        if (defensor->tropas <= 0) {
+        printf("Território conquistado!\n");
+            strcpy(defensor->cor, atacante->cor);
+            defensor->tropas = 1;
+            atacante->tropas--;
+        }
+
+    } else {
+        printf("Resultado: O defensor resistiu!\n");
+        atacante->tropas--;
+    }
+}
+
+// ============================================================================
+// Gera missão aleatória
+// ============================================================================
+Missão gerarMissão() {
+    return (rand() % 2) + 1;
+}
+
+// ============================================================================
+// Exibe missão
+// ============================================================================
+void exibirMissão(Missão m) {
+
+    printf("\n===== SUA MISSÃO =====\n");
+
+    if (m == MISSAO_DESTRUIR_VERDE)
+        printf("Destruir completamente o exército Verde.\n");
+    else
+        printf("Conquistar pelo menos 3 territórios da mesma cor.\n");
+
+    printf("=======================\n");
+}
+
+// ============================================================================
+// Verifica missão
+// ============================================================================
+int verificarMissão(Missão m, const Território mapa[]) {
+
+    // MISSÃO 1 → Destruir Verde
+    if (m == MISSAO_DESTRUIR_VERDE) {
+        for (int i = 0; i < TOTAL_TERRITORIOS; i++) {
+            if (strcmp(mapa[i].cor, "Verde") == 0)
+                return 0;
+        }
+        return 1;
+    }
+
+    // MISSÃO 2 → Conquistar 3 territórios
+    if (m == MISSAO_CONQUISTAR_3) {
+
+        for (int i = 0; i < TOTAL_TERRITORIOS; i++) {
+
+            int contador = 1;
+
+            for (int j = 0; j < TOTAL_TERRITORIOS; j++) {
+                if (i != j && strcmp(mapa[i].cor, mapa[j].cor) == 0)
+                    contador++;
+            }
+
+            if (contador >= 3)
+                return 1;
+        }
+    }
+
+    return 0;
+}
+
+// ============================================================================
+// PROGRAMA PRINCIPAL
+// ============================================================================
+int main() {
+
+    setlocale(LC_ALL, "pt_BR.UTF-8");
+    srand(time(NULL));
+
+    // ==========================================
+    // Alocação dinâmica com calloc
+    // ==========================================
+    Território *mapa = (Território*) calloc(TOTAL_TERRITORIOS, sizeof(Território));
+
+    if (mapa == NULL) {
+        printf("Erro ao alocar memória!\n");
+        return 1;
+    }
+
+    inicializarMapa(mapa);
+
+    Missão missão = gerarMissão();
+
+    printf("=== WAR – NÍVEL MESTRE ===\n");
+    exibirMissão(missão);
+    exibirMapa(mapa);
+
+    int opção;
+
+    do {
+        printf("\n===== MENU =====\n");
+        printf("1 - Atacar\n");
+        printf("2 - Verificar Missão\n");
+        printf("0 - Sair\n");
+        printf("Escolha: ");
+        scanf("%d", &opção);
+
+        if (opção == 1) {
+
+            int A, D;
+            exibirMapa(mapa);
+
+            printf("\nEscolha o atacante (1 a %d): ", TOTAL_TERRITORIOS);
+            scanf("%d", &A);
+
+            printf("Escolha o defensor (1 a %d): ", TOTAL_TERRITORIOS);
+            scanf("%d", &D);
+
+            if (A < 1 || A > TOTAL_TERRITORIOS ||
+                D < 1 || D > TOTAL_TERRITORIOS ||
+                A == D) {
+
+                printf("Escolha inválida! Tente novamente.\n");
+                continue;
+            }
+
+            atacar(&mapa[A - 1], &mapa[D - 1]);
+        }
+
+        else if (opção == 2) {
+
+            if (verificarMissão(missão, mapa)) {
+                printf("\nPARABÉNS! MISSÃO CUMPRIDA!\n");
+                break;
+            } else {
+                printf("\nMissão ainda não concluída.\n");
+            }
+        }
+
+    } while (opção != 0);
+
+    printf("\nEncerrando o jogo...\n");
+
+    // Liberar memória
+    free(mapa);
+
+    return 0;
+}
